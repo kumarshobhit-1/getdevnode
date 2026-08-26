@@ -3,6 +3,7 @@ package getdevnode.backend.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 
@@ -14,6 +15,11 @@ public class CryptoConfig {
     TextEncryptor tokenEncryptor(
             @Value("${app.token-encryptor-password}") String password,
             @Value("${app.token-encryptor-salt}") String salt) {
-        return Encryptors.text(password, salt);
+        String hexSalt = isHex(salt) ? salt : new String(Hex.encode(salt.getBytes()));
+        return Encryptors.text(password, hexSalt);
+    }
+
+    private static boolean isHex(String s) {
+        return s != null && s.matches("^[0-9a-fA-F]+$") && (s.length() % 2 == 0);
     }
 }
