@@ -3,7 +3,7 @@ package getdevnode.backend.entity;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.google.auto.value.AutoValue.Builder;
+import lombok.Builder;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,7 +34,7 @@ public class User {
     private Long githubId;
 
     @Column(name = "github_username", nullable = false, length = 100)
-    private String githubUsernamr;
+    private String githubUsername;
 
     @Column(name = "display_name", nullable = false, length = 200)
     private String displayName;
