@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -17,7 +16,7 @@ import getdevnode.backend.repository.ChatMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-// Generation step: call OpenAI via Spring AI and stream tokens to the browser over SSE.
+// Generation step: call Gemini via Spring AI and stream tokens to the browser over SSE.
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -65,13 +64,14 @@ public class ChatStreamHandler {
     }
 
     private void appendToken(SseEmitter emitter, StringBuilder fullReply, String token) {
+        if (token == null) return;
         fullReply.append(token);
         try {
             emitter.send(SseEmitter.event()
                     .name("token")
-                    .data(token, MediaType.APPLICATION_JSON));
+                    .data(token));
         } catch (Exception ex) {
-            throw new IllegalStateException(ex);
+            log.error("Failed to send token event", ex);
         }
     }
 

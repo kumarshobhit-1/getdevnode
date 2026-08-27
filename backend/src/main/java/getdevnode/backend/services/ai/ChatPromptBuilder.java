@@ -3,7 +3,7 @@ package getdevnode.backend.services.ai;
 import org.springframework.stereotype.Component;
 
 /**
- * Builds the prompts sent to OpenAI.
+ * Builds the prompts sent to Gemini model.
  *
  * <p>We use two messages:
  * <ul>
