@@ -18,7 +18,7 @@ public class CorsConfig {
             @Value("${app.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
+                .map(s -> s.trim())
                 .map(s -> s.replaceAll("/+$", ""))
                 .filter(s -> !s.isEmpty())
                 .toList();
