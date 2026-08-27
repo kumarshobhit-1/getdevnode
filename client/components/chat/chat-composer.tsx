@@ -29,7 +29,7 @@ export function ChatComposer({
   }
 
   return (
-    <div className="border-t bg-background/80 p-4 backdrop-blur">
+    <div className="shrink-0 z-10 border-t bg-background/95 p-3 sm:p-4 backdrop-blur">
       <div className="mx-auto max-w-3xl space-y-2">
         <div className="flex items-end gap-2 rounded-2xl border bg-card p-2 shadow-xs">
           <Textarea

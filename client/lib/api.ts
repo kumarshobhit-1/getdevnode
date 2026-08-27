@@ -135,4 +135,8 @@ export const api = {
     ),
   getMessages: (sessionId: string) =>
     apiFetch<ChatMessage[]>(`/api/chat/sessions/${sessionId}`),
+  deleteSession: (sessionId: string) =>
+    apiFetch<void>(`/api/chat/sessions/${sessionId}`, {
+      method: "DELETE",
+    }),
 };

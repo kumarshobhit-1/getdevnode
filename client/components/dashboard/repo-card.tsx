@@ -34,7 +34,7 @@ export function RepoCard({ repo }: { repo: Repository }) {
   }
 
   function handlePrimary() {
-    if (repo.indexStatus === "READY") {
+    if (repo.indexStatus === "READY" || repo.indexStatus === "INDEXING") {
       openChat();
       return;
     }
@@ -111,9 +111,15 @@ export function RepoCard({ repo }: { repo: Repository }) {
         </div>
 
         {isIndexing && (
-          <div className="space-y-2 rounded-xl border border-dashed bg-muted/30 p-3">
+          <div
+            onClick={openChat}
+            className="group/progress cursor-pointer space-y-2 rounded-xl border border-dashed bg-muted/30 p-3 transition-colors hover:bg-muted/60"
+            title="Click to view indexing progress in chat"
+          >
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Indexing…</span>
+              <span className="font-medium group-hover/progress:text-foreground transition-colors">
+                Indexing in progress…
+              </span>
               <span>
                 {repo.filesProcessed}/{repo.filesTotal || "?"}
               </span>
@@ -142,27 +148,23 @@ export function RepoCard({ repo }: { repo: Repository }) {
         )}
 
         <div className="flex gap-2">
-          {repo.indexStatus === "READY" && (
-            <Button variant="secondary" size="sm" onClick={openChat}>
-              <MessageSquare data-icon="inline-start" />
-              Chat
-            </Button>
-          )}
           <Button
             size="sm"
-            variant={isFailed ? "outline" : "default"}
+            variant={repo.indexStatus === "INDEXING" ? "secondary" : isFailed ? "outline" : "default"}
             className={cn(isFailed && "border-destructive/30 text-destructive hover:bg-destructive/10")}
-            disabled={isIndexing}
+            disabled={indexMutation.isPending}
             onClick={handlePrimary}
           >
-            {isIndexing ? (
+            {repo.indexStatus === "INDEXING" ? (
               <>
                 <Spinner data-icon="inline-start" />
-                Indexing
+                View progress
+                <ArrowRight data-icon="inline-end" />
               </>
             ) : repo.indexStatus === "READY" ? (
               <>
-                Open
+                <MessageSquare data-icon="inline-start" />
+                Open Chat
                 <ArrowRight data-icon="inline-end" />
               </>
             ) : isFailed ? (

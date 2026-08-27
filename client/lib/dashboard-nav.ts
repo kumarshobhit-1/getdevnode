@@ -1,5 +1,6 @@
 import {
   FolderGit2,
+  Home,
   LayoutGrid,
   Settings,
   type LucideIcon,
@@ -21,6 +22,12 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
   {
     label: "Workspace",
     items: [
+      {
+        title: "Home Page",
+        href: "/",
+        icon: Home,
+        exact: true,
+      },
       {
         title: "Overview",
         href: "/dashboard/overview",

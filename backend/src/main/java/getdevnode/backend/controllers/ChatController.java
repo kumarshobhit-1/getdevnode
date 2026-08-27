@@ -57,4 +57,11 @@ public class ChatController {
         UUID userId = currentUser.require().getId();
         return chatService.streamReply(userId, id, request.content());
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/sessions/{id}")
+    public ResponseEntity<Void> deleteSession(@PathVariable UUID id) {
+        UUID userId = currentUser.require().getId();
+        chatService.deleteSession(userId, id);
+        return ResponseEntity.noContent().build();
+    }
 }

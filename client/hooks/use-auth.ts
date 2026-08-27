@@ -19,6 +19,11 @@ export function setAuthCookie(authed: boolean) {
 }
 
 
+export function hasAuthCookie(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.includes(`${AUTH_COOKIE}=1`);
+}
+
 export function useCurrentUser(){
     return useQuery({
         queryKey: queryKeys.auth.me(),

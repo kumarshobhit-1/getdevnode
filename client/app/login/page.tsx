@@ -6,8 +6,7 @@ import { Suspense, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 
 import { GitHubIcon } from "@/components/icons/github-icon";
-import { BrandMark } from "@/components/layout/app-shell";
-import { ModeToggle } from "@/components/ui/mode-toggle";
+import { Navbar } from "@/components/layout/navbar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -48,12 +47,7 @@ const LoginContent = () => {
    <div className="relative flex min-h-svh flex-col overflow-hidden bg-background">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(from_var(--primary)_l_c_h/0.1),transparent_55%)]" />
 
-      <header className="relative z-10 flex h-14 items-center justify-between px-4">
-        <Link href="/">
-          <BrandMark />
-        </Link>
-        <ModeToggle />
-      </header>
+      <Navbar />
 
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-10">
         <Card className="w-full max-w-sm border-border/70 bg-card/90 shadow-lg shadow-foreground/5 backdrop-blur-xl">

@@ -50,13 +50,35 @@ export function useRepository(repoId: string) {
   });
 }
 
-export function useIndexStatus(repoId: string, enabled = false) {
+export function useIndexStatus(repoId: string, enabled = true) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: queryKeys.repos.status(repoId),
-    queryFn: () => api.indexStatus(repoId),
+    queryFn: async () => {
+      const status = await api.indexStatus(repoId);
+      if (status.indexStatus === "READY" || status.indexStatus === "FAILED") {
+        queryClient.setQueryData<Repository>(
+          queryKeys.repos.detail(repoId),
+          (prev) => (prev ? { ...prev, indexStatus: status.indexStatus } : prev)
+        );
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.repos.detail(repoId),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.repos.list(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.chat.sessions(repoId),
+        });
+      }
+      return status;
+    },
     enabled: Boolean(repoId) && enabled,
-    refetchInterval: (query) =>
-      query.state.data?.indexStatus === "INDEXING" ? 1500 : false,
+    refetchInterval: (query) => {
+      const status = query.state.data?.indexStatus;
+      return status === "INDEXING" || status === "PENDING" ? 1500 : false;
+    },
   });
 }
 

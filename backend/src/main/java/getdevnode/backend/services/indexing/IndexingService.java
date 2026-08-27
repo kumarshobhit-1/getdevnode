@@ -105,7 +105,7 @@ public class IndexingService {
             }
 
             processed++;
-            if (processed % PROGRESS_EVERY_N_FILES == 0 || processed == filePaths.size()) {
+            if (processed % PROGRESS_EVERY_N_FILES == 0 && processed < filePaths.size()) {
                 updateProgress(repoId, filePaths.size(), processed, totalChunks, IndexStatus.INDEXING, null);
             }
             rateLimiter.pause();
@@ -118,8 +118,7 @@ public class IndexingService {
         markReady(repoId, filePaths.size(), processed, totalChunks, repo.getFullName());
     }
 
-
-       @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
     private List<String> listIndexableFiles(Map<String, Object> tree) {
         if (tree == null || tree.get("tree") == null) {
             return List.of();
@@ -137,17 +136,17 @@ public class IndexingService {
                 .toList();
     }
 
-     private void deleteExistingVectors(String repoId) {
+    private void deleteExistingVectors(String repoId) {
         try {
             var filter = new FilterExpressionBuilder().eq(RagSettings.METADATA_REPO_ID, repoId).build();
             vectorStore.delete(filter);
         } catch (Exception ex) {
             log.warn("Could not delete existing vectors for repo {}: {}", repoId, ex.getMessage());
         }
-    };
+    }
 
-      @Transactional
-    protected void updateProgress(
+    @Transactional
+    public void updateProgress(
             UUID repoId,
             int total,
             int processed,
@@ -161,12 +160,12 @@ public class IndexingService {
             repo.setIndexStatus(status);
             repo.setErrorMessage(error);
             repo.setUpdatedAt(Instant.now());
-            repositoryRepository.save(repo);
+            repositoryRepository.saveAndFlush(repo);
         });
     }
 
-      @Transactional
-    protected void markReady(UUID repoId, int totalFiles, int processedFiles, int totalChunks, String fullName) {
+    @Transactional
+    public void markReady(UUID repoId, int totalFiles, int processedFiles, int totalChunks, String fullName) {
         repositoryRepository.findById(repoId).ifPresent(repo -> {
             repo.setIndexStatus(IndexStatus.READY);
             repo.setFilesTotal(totalFiles);
@@ -175,21 +174,20 @@ public class IndexingService {
             repo.setIndexedAt(Instant.now());
             repo.setErrorMessage(null);
             repo.setUpdatedAt(Instant.now());
-            repositoryRepository.save(repo);
+            repositoryRepository.saveAndFlush(repo);
         });
         log.info("Indexed {} files ({} chunks) for {}", processedFiles, totalChunks, fullName);
     }
 
-     @Transactional
-    protected void markFailed(UUID repoId, String message) {
+    @Transactional
+    public void markFailed(UUID repoId, String message) {
         repositoryRepository.findById(repoId).ifPresent(repo -> {
             repo.setIndexStatus(IndexStatus.FAILED);
             repo.setErrorMessage(message != null && message.length() > 2000
                     ? message.substring(0, 2000)
                     : message);
             repo.setUpdatedAt(Instant.now());
-            repositoryRepository.save(repo);
+            repositoryRepository.saveAndFlush(repo);
         });
     }
-
 }

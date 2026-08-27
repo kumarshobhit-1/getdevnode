@@ -20,8 +20,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Get Dev Node",
-  description: "Get Dev Node build by developer for developer!",
+  title: "GetDevNode — AI Codebase Intelligence",
+  description: "Chat directly with your entire codebase grounded in actual source files with line-level citations.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -37,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             attribute="class"
             defaultTheme="system"
             enableSystem
+            enableColorScheme={false}
             disableTransitionOnChange
           >
             {children}

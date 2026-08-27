@@ -1,24 +1,37 @@
+.chat-markdown {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .chat-markdown {
+    font-size: 0.835rem;
+    line-height: 1.55;
+  }
+}
+
 .chat-markdown [data-streamdown="heading-1"],
 .chat-markdown [data-streamdown="heading-2"],
 .chat-markdown [data-streamdown="heading-3"],
 .chat-markdown [data-streamdown="heading-4"] {
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0.875rem;
+  margin-bottom: 0.375rem;
   font-weight: 600;
   line-height: 1.35;
 }
 
 .chat-markdown [data-streamdown="heading-1"] {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
 }
 
 .chat-markdown [data-streamdown="heading-2"] {
-  font-size: 1.125rem;
+  font-size: 1.05rem;
 }
 
 .chat-markdown [data-streamdown="heading-3"],
 .chat-markdown [data-streamdown="heading-4"] {
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .chat-markdown [data-streamdown="heading-1"]:first-child,
@@ -29,7 +42,7 @@
 }
 
 .chat-markdown p {
-  margin: 0.5rem 0;
+  margin: 0.375rem 0;
 }
 
 .chat-markdown p:first-child {
@@ -42,8 +55,15 @@
 
 .chat-markdown [data-streamdown="unordered-list"],
 .chat-markdown [data-streamdown="ordered-list"] {
-  margin: 0.5rem 0;
-  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+  padding-left: 1.15rem;
+}
+
+@media (min-width: 640px) {
+  .chat-markdown [data-streamdown="unordered-list"],
+  .chat-markdown [data-streamdown="ordered-list"] {
+    padding-left: 1.35rem;
+  }
 }
 
 .chat-markdown [data-streamdown="list-item"] {
@@ -56,26 +76,36 @@
 
 .chat-markdown [data-streamdown="inline-code"] {
   border-radius: 0.25rem;
-  background: color-mix(in oklch, var(--foreground) 8%, transparent);
-  padding: 0.125rem 0.375rem;
+  background: color-mix(in oklch, var(--foreground) 9%, transparent);
+  padding: 0.075rem 0.25rem;
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: 0.85em;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  white-space: pre-wrap !important;
+  display: inline !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  vertical-align: baseline;
 }
 
 .chat-markdown [data-streamdown="code-block"] {
-  margin: 0.75rem 0;
+  margin: 0.625rem 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .chat-markdown [data-streamdown="link"] {
   color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 2px;
+  word-break: break-all;
 }
 
 .chat-markdown [data-streamdown="blockquote"] {
-  margin: 0.75rem 0;
+  margin: 0.625rem 0;
   border-left: 3px solid var(--border);
-  padding-left: 0.875rem;
+  padding-left: 0.75rem;
   color: var(--muted-foreground);
 }
 

@@ -49,7 +49,7 @@ export function RepoDashboard() {
     reposQuery.data?.filter((r) => r.indexStatus === "READY").length ?? 0;
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <DashboardHeader
         search={search}
         onSearchChange={setSearch}
@@ -63,7 +63,7 @@ export function RepoDashboard() {
         isSyncing={refresh.isPending || reposQuery.isFetching}
       />
 
-      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6">
         {reposQuery.isLoading && (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (

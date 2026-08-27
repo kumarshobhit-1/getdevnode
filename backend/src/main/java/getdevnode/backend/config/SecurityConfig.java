@@ -59,7 +59,7 @@ public class SecurityConfig {
                                 response.setStatus(HttpStatus.NO_CONTENT.value()))
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
-                        .deleteCookies("DEVPILOT_SESSION"));
+                        .deleteCookies("GETDEVNODE_SESSION", "DEVPILOT_SESSION"));
 
         return http.build();
     }
