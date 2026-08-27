@@ -68,7 +68,7 @@ public class SecurityConfig {
 
     @Bean
     AuthenticationSuccessHandler oauth2SuccessHandler(
-            @Value("${app.frontend-url}") String frontendUrl) {
+            @Value("${app.frontend-url:http://localhost:3000}") String frontendUrl) {
         SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler();
         handler.setDefaultTargetUrl(frontendUrl + "/auth/callback");
         return handler;
@@ -76,7 +76,7 @@ public class SecurityConfig {
 
     @Bean
     AuthenticationFailureHandler oauth2FailureHandler(
-            @Value("${app.frontend-url}") String frontendUrl) {
+            @Value("${app.frontend-url:http://localhost:3000}") String frontendUrl) {
         SimpleUrlAuthenticationFailureHandler handler = new SimpleUrlAuthenticationFailureHandler();
         handler.setDefaultFailureUrl(frontendUrl + "/login?error=oauth_failed");
         return handler;

@@ -23,9 +23,9 @@ public class GoogleGenAiEmbeddingModel extends AbstractEmbeddingModel {
     private final int dimensions;
 
     public GoogleGenAiEmbeddingModel(
-            @Value("${spring.ai.google.genai.api-key}") String apiKey,
+            @Value("${spring.ai.google.genai.api-key:${GEMINI_API_KEY:${GENAI_API_KEY:AIzaSyD672P1BrDH5IzHWA_wo5F0uhTodCj4bT8}}}") String apiKey,
             @Value("${spring.ai.google.genai.embedding.text.model:gemini-embedding-001}") String modelName,
-            @Value("${spring.ai.vectorstore.pgvector.dimensions:768}") int dimensions) {
+            @Value("${spring.ai.vectorstore.pgvector.dimensions:1536}") int dimensions) {
         this.client = Client.builder().apiKey(apiKey).build();
         this.modelName = modelName;
         this.dimensions = dimensions;
