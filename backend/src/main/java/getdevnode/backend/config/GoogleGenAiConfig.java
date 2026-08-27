@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public class GoogleGenAiConfig {
 
     @Value("${spring.ai.google.genai.api-key:${GEMINI_API_KEY:${GENAI_API_KEY:AIzaSyD672P1BrDH5IzHWA_wo5F0uhTodCj4bT8}}}")
