@@ -19,32 +19,38 @@ public class CodeContextRetriever {
     private final VectorStore vectorStore;
     private final CitationMapper citationMapper; 
 
-     public RetrievedContext retrieve(UUID repositoryId, String question) {
-        var filter = new FilterExpressionBuilder()
-                .eq(RagSettings.METADATA_REPO_ID, repositoryId.toString())
-                .build();
+    public RetrievedContext retrieve(UUID repositoryId, String question) {
+        try {
+            var filter = new FilterExpressionBuilder()
+                    .eq(RagSettings.METADATA_REPO_ID, repositoryId.toString())
+                    .build();
 
-        var search = SearchRequest.builder()
-                .query(question)
-                .topK(RagSettings.TOP_K_CHUNKS)
-                .filterExpression(filter)
-                .build();
+            var search = SearchRequest.builder()
+                    .query(question)
+                    .topK(RagSettings.TOP_K_CHUNKS)
+                    .filterExpression(filter)
+                    .build();
 
-        var documents = vectorStore.similaritySearch(search);
+            var documents = vectorStore.similaritySearch(search);
 
-        var citations = documents.stream()
-                .map(citationMapper::fromDocument)
-                .distinct()
-                .toList();
+            var citations = documents.stream()
+                    .map(citationMapper::fromDocument)
+                    .distinct()
+                    .toList();
 
-        var contextText = documents.stream()
-                .map(doc -> doc.getText())
-                .collect(Collectors.joining("\n\n---\n\n"));
+            var contextText = documents.stream()
+                    .map(doc -> doc.getText())
+                    .collect(Collectors.joining("\n\n---\n\n"));
 
-        if (contextText.isBlank()) {
-            contextText = NO_MATCHES;
+            if (contextText.isBlank()) {
+                contextText = NO_MATCHES;
+            }
+
+            return new RetrievedContext(citations, contextText);
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(CodeContextRetriever.class)
+                    .warn("Vector store context retrieval skipped due to error: {}. Proceeding with general chat.", ex.getMessage());
+            return new RetrievedContext(java.util.Collections.emptyList(), NO_MATCHES);
         }
-
-        return new RetrievedContext(citations, contextText);
     }
 }
