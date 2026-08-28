@@ -1,5 +1,7 @@
 package getdevnode.backend.services.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import getdevnode.backend.config.ApiKeyRotator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +13,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Service
@@ -20,12 +26,15 @@ public class GroqChatService {
     private final ApiKeyRotator groqKeyRotator;
     private final String modelName;
     private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
     public GroqChatService(
             @Value("${app.groq.api-keys:${GROQ_API_KEYS:${GROQ_API_KEY:}}}") String rawKeys,
-            @Value("${app.groq.model:llama-3.3-70b-versatile}") String modelName) {
+            @Value("${app.groq.model:llama-3.3-70b-versatile}") String modelName,
+            ObjectMapper objectMapper) {
         this.groqKeyRotator = new ApiKeyRotator("Groq-Chat", rawKeys, null);
         this.modelName = modelName;
+        this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -54,7 +63,7 @@ public class GroqChatService {
                     log.warn("[Groq] Rate limit hit on key #{}. Rotating to next Groq API key...", attempt);
                     groqKeyRotator.rotateNext();
                 } else if (attempt == maxAttempts) {
-                    log.error("[Groq] All Groq API key attempts failed", ex);
+                    log.error("[Groq] All Groq API key attempts failed: {}", msg);
                     throw ex;
                 }
             }
@@ -67,19 +76,18 @@ public class GroqChatService {
             String userPrompt,
             Consumer<String> onTokenConsumer) throws Exception {
 
-        String escapedSystem = escapeJson(systemPrompt);
-        String escapedUser = escapeJson(userPrompt);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("model", modelName);
+        payload.put("stream", true);
 
-        String jsonBody = """
-                {
-                  "model": "%s",
-                  "stream": true,
-                  "messages": [
-                    {"role": "system", "content": "%s"},
-                    {"role": "user", "content": "%s"}
-                  ]
-                }
-                """.formatted(modelName, escapedSystem, escapedUser);
+        List<Map<String, String>> messages = new ArrayList<>();
+        if (StringUtils.hasText(systemPrompt)) {
+            messages.add(Map.of("role", "system", "content", systemPrompt));
+        }
+        messages.add(Map.of("role", "user", "content", userPrompt != null ? userPrompt : ""));
+        payload.put("messages", messages);
+
+        String jsonBody = objectMapper.writeValueAsString(payload);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.groq.com/openai/v1/chat/completions"))
@@ -107,49 +115,25 @@ public class GroqChatService {
                     if ("[DONE]".equals(data)) {
                         break;
                     }
-                    String content = extractDeltaContent(data);
-                    if (content != null && !content.isEmpty()) {
-                        onTokenConsumer.accept(content);
+                    try {
+                        JsonNode root = objectMapper.readTree(data);
+                        JsonNode choices = root.path("choices");
+                        if (choices.isArray() && !choices.isEmpty()) {
+                            JsonNode delta = choices.get(0).path("delta");
+                            JsonNode contentNode = delta.path("content");
+                            if (!contentNode.isMissingNode() && !contentNode.isNull()) {
+                                String content = contentNode.asText();
+                                if (!content.isEmpty()) {
+                                    onTokenConsumer.accept(content);
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {
                     }
                 }
             }
         }
 
         return true;
-    }
-
-    private String extractDeltaContent(String json) {
-        int idx = json.indexOf("\"content\":\"");
-        if (idx == -1) return null;
-        int start = idx + 11;
-        StringBuilder sb = new StringBuilder();
-        boolean escaped = false;
-
-        for (int i = start; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                if (c == 'n') sb.append('\n');
-                else if (c == 'r') sb.append('\r');
-                else if (c == 't') sb.append('\t');
-                else sb.append(c);
-                escaped = false;
-            } else if (c == '\\') {
-                escaped = true;
-            } else if (c == '"') {
-                break;
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
-    private String escapeJson(String raw) {
-        if (raw == null) return "";
-        return raw.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
     }
 }

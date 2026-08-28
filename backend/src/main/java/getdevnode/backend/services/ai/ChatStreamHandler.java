@@ -47,35 +47,54 @@ public class ChatStreamHandler {
                 new Thread(() -> {
                     try {
                         groqChatService.streamChat(systemPrompt, userPrompt, token -> appendToken(emitter, fullReply, token));
-                        completeStream(emitter, sessionId, fullReply, citations);
+                        if (fullReply.length() > 0) {
+                            completeStream(emitter, sessionId, fullReply, citations);
+                            return;
+                        }
+                        log.warn("Groq returned empty response. Falling back to Gemini Chat Model...");
                     } catch (Exception ex) {
-                        log.error("Groq chat streaming error", ex);
-                        emitter.completeWithError(ex);
+                        log.error("Groq chat streaming error. Falling back to Gemini Chat Model...", ex);
                     }
+                    streamWithGemini(emitter, sessionId, fullReply, citations, systemPrompt, userPrompt);
                 }).start();
             } else {
                 log.info("Streaming chat response using Gemini Chat Model");
-                ChatClient.builder(chatModel)
-                        .build()
-                        .prompt()
-                        .system(systemPrompt)
-                        .user(userPrompt)
-                        .stream()
-                        .content()
-                        .doOnNext(token -> appendToken(emitter, fullReply, token))
-                        .doOnError(err -> {
-                            log.error("Chat stream error", err);
-                            emitter.completeWithError(err);
-                        })
-                        .doOnComplete(() -> completeStream(
-                                emitter, sessionId, fullReply, citations))
-                        .subscribe();
+                streamWithGemini(emitter, sessionId, fullReply, citations, systemPrompt, userPrompt);
             }
         } catch (Exception ex) {
             emitter.completeWithError(ex);
         }
 
         return emitter;
+    }
+
+    private void streamWithGemini(
+            SseEmitter emitter,
+            UUID sessionId,
+            StringBuilder fullReply,
+            List<CitationDto> citations,
+            String systemPrompt,
+            String userPrompt) {
+        try {
+            ChatClient.builder(chatModel)
+                    .build()
+                    .prompt()
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .stream()
+                    .content()
+                    .doOnNext(token -> appendToken(emitter, fullReply, token))
+                    .doOnError(err -> {
+                        log.error("Gemini Chat stream error", err);
+                        emitter.completeWithError(err);
+                    })
+                    .doOnComplete(() -> completeStream(
+                            emitter, sessionId, fullReply, citations))
+                    .subscribe();
+        } catch (Exception ex) {
+            log.error("Failed to execute Gemini chat stream", ex);
+            emitter.completeWithError(ex);
+        }
     }
 
     private void appendToken(SseEmitter emitter, StringBuilder fullReply, String token) {
