@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ChatStreamHandler {
 
     private final ChatModel chatModel;
+    private final GroqChatService groqChatService;
     private final ChatMessageRepository chatMessageRepository;
     private final CitationMapper citationMapper;
 
@@ -41,21 +42,35 @@ public class ChatStreamHandler {
                     .name("user_message")
                     .data(savedUserMessage));
 
-            ChatClient.builder(chatModel)
-                    .build()
-                    .prompt()
-                    .system(systemPrompt)
-                    .user(userPrompt)
-                    .stream()
-                    .content()
-                    .doOnNext(token -> appendToken(emitter, fullReply, token))
-                    .doOnError(err -> {
-                        log.error("Chat stream error", err);
-                        emitter.completeWithError(err);
-                    })
-                    .doOnComplete(() -> completeStream(
-                            emitter, sessionId, fullReply, citations))
-                    .subscribe();
+            if (groqChatService != null && groqChatService.isAvailable()) {
+                log.info("Streaming chat response using Groq Cloud AI (llama-3.3-70b)");
+                new Thread(() -> {
+                    try {
+                        groqChatService.streamChat(systemPrompt, userPrompt, token -> appendToken(emitter, fullReply, token));
+                        completeStream(emitter, sessionId, fullReply, citations);
+                    } catch (Exception ex) {
+                        log.error("Groq chat streaming error", ex);
+                        emitter.completeWithError(ex);
+                    }
+                }).start();
+            } else {
+                log.info("Streaming chat response using Gemini Chat Model");
+                ChatClient.builder(chatModel)
+                        .build()
+                        .prompt()
+                        .system(systemPrompt)
+                        .user(userPrompt)
+                        .stream()
+                        .content()
+                        .doOnNext(token -> appendToken(emitter, fullReply, token))
+                        .doOnError(err -> {
+                            log.error("Chat stream error", err);
+                            emitter.completeWithError(err);
+                        })
+                        .doOnComplete(() -> completeStream(
+                                emitter, sessionId, fullReply, citations))
+                        .subscribe();
+            }
         } catch (Exception ex) {
             emitter.completeWithError(ex);
         }

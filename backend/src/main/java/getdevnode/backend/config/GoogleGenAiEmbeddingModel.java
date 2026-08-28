@@ -20,15 +20,17 @@ import java.util.List;
 @Slf4j
 public class GoogleGenAiEmbeddingModel extends AbstractEmbeddingModel {
 
-    private final Client client;
+    private final ApiKeyRotator keyRotator;
     private final String modelName;
     private final int dimensions;
+    private Client currentClient;
 
     public GoogleGenAiEmbeddingModel(
-            @Value("${spring.ai.google.genai.api-key:${GEMINI_API_KEY:${GENAI_API_KEY:AIzaSyD672P1BrDH5IzHWA_wo5F0uhTodCj4bT8}}}") String apiKey,
-            @Value("${spring.ai.google.genai.embedding.text.model:gemini-embedding-001}") String modelName,
+            @Value("${spring.ai.google.genai.api-keys:${GEMINI_API_KEYS:${GEMINI_API_KEY:${GENAI_API_KEY:dummy_gemini_key}}}}") String rawKeys,
+            @Value("${spring.ai.google.genai.embedding.text.model:text-embedding-004}") String modelName,
             @Value("${spring.ai.vectorstore.pgvector.dimensions:1536}") int dimensions) {
-        this.client = Client.builder().apiKey(apiKey).build();
+        this.keyRotator = new ApiKeyRotator("Gemini-Embedding", rawKeys, "dummy_gemini_key");
+        this.currentClient = Client.builder().apiKey(keyRotator.getCurrentKey()).build();
         this.modelName = modelName;
         this.dimensions = dimensions;
     }
@@ -64,7 +66,7 @@ public class GoogleGenAiEmbeddingModel extends AbstractEmbeddingModel {
         return embedWithRetry(text);
     }
 
-    private float[] embedWithRetry(String text) {
+    private synchronized float[] embedWithRetry(String text) {
         if (text == null || text.isBlank()) {
             return new float[dimensions];
         }
@@ -73,12 +75,12 @@ public class GoogleGenAiEmbeddingModel extends AbstractEmbeddingModel {
                 .outputDimensionality(dimensions)
                 .build();
 
-        int maxRetries = 4;
-        long waitTimeMs = 3000;
+        int maxAttempts = Math.max(4, keyRotator.getKeyCount() * 2);
+        long waitTimeMs = 2000;
 
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                EmbedContentResponse response = client.models.embedContent(modelName, text, config);
+                EmbedContentResponse response = currentClient.models.embedContent(modelName, text, config);
                 return extractVector(response);
             } catch (Exception ex) {
                 String errorMsg = ex.getMessage() != null ? ex.getMessage() : "";
@@ -86,20 +88,27 @@ public class GoogleGenAiEmbeddingModel extends AbstractEmbeddingModel {
                         || errorMsg.contains("RESOURCE_EXHAUSTED") || errorMsg.contains("rate-limit")
                         || errorMsg.contains("quota");
 
-                if (isRateLimit && attempt < maxRetries) {
-                    log.warn("Gemini Embedding API rate limit hit (Attempt {}/{}). Waiting {}ms before retry...",
-                            attempt, maxRetries, waitTimeMs);
-                    try {
-                        Thread.sleep(waitTimeMs);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
+                if (isRateLimit && attempt < maxAttempts) {
+                    if (keyRotator.getKeyCount() > 1) {
+                        String nextKey = keyRotator.rotateNext();
+                        log.warn("Gemini Embedding API key rate limited (Attempt {}/{}). Switching to next API key in pool...",
+                                attempt, maxAttempts);
+                        this.currentClient = Client.builder().apiKey(nextKey).build();
+                    } else {
+                        log.warn("Gemini Embedding API rate limit hit (Attempt {}/{}). Waiting {}ms before retry...",
+                                attempt, maxAttempts, waitTimeMs);
+                        try {
+                            Thread.sleep(waitTimeMs);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        waitTimeMs *= 2;
                     }
-                    waitTimeMs *= 2; // Exponential backoff: 3s, 6s, 12s
                 } else {
                     log.error("Failed to generate embedding after {} attempts: {}", attempt, errorMsg);
                     throw new RuntimeException("Gemini API Error: " + (isRateLimit
-                            ? "Free Tier Daily Quota Exceeded (1,000 requests/day). Please wait a while or use a paid Gemini API Key."
+                            ? "All Gemini API Keys in pool exhausted daily/RPM quotas. Please add another key in GEMINI_API_KEYS."
                             : errorMsg), ex);
                 }
             }

@@ -9,12 +9,12 @@ import org.springframework.util.StringUtils;
 @Configuration(proxyBeanMethods = false)
 public class GoogleGenAiConfig {
 
-    @Value("${spring.ai.google.genai.api-key:${GEMINI_API_KEY:${GENAI_API_KEY:AIzaSyD672P1BrDH5IzHWA_wo5F0uhTodCj4bT8}}}")
+    @Value("${spring.ai.google.genai.api-key:${GEMINI_API_KEY:${GENAI_API_KEY:dummy_gemini_key}}}")
     private String apiKey;
 
     @Bean
     public Client googleGenAiClient() {
-        String defaultFallback = "AIzaSyD672P1BrDH5IzHWA_wo5F0uhTodCj4bT8";
+        String defaultFallback = "dummy_gemini_key";
         String effectiveKey = StringUtils.hasText(apiKey) ? apiKey.trim() : defaultFallback;
         if (effectiveKey.isEmpty()) {
             effectiveKey = defaultFallback;
