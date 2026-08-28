@@ -72,7 +72,13 @@ export async function streamChatMessage(
 
       try {
         if (event === "token") {
-          handlers.onToken?.(JSON.parse(data) as string);
+          let tokenStr = data;
+          try {
+            tokenStr = JSON.parse(data) as string;
+          } catch {
+            tokenStr = data;
+          }
+          handlers.onToken?.(tokenStr);
         } else if (event === "user_message") {
           handlers.onUserMessage?.(JSON.parse(data) as ChatMessage);
         } else if (event === "assistant_message") {

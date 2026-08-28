@@ -26,6 +26,7 @@ public class ChatStreamHandler {
     private final GroqChatService groqChatService;
     private final ChatMessageRepository chatMessageRepository;
     private final CitationMapper citationMapper;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
     public SseEmitter stream(
             UUID sessionId,
@@ -103,7 +104,7 @@ public class ChatStreamHandler {
         try {
             emitter.send(SseEmitter.event()
                     .name("token")
-                    .data(token));
+                    .data(objectMapper.writeValueAsString(token)));
         } catch (Exception ex) {
             log.error("Failed to send token event", ex);
         }
