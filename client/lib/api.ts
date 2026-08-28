@@ -70,7 +70,8 @@ export class ApiError extends Error {
 }
 
 export function getApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+  const url = process.env.NEXT_PUBLIC_API_BASE_URL || "https://getdevnode.onrender.com";
+  return url.replace(/\/+$/, "");
 }
 
 export function getGithubLoginUrl() {
