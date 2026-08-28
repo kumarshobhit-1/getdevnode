@@ -38,14 +38,24 @@ public class ChatStreamHandler {
         SseEmitter emitter = new SseEmitter(RagSettings.STREAM_TIMEOUT_MS);
         StringBuilder fullReply = new StringBuilder();
 
-        try {
-            emitter.send(SseEmitter.event()
-                    .name("user_message")
-                    .data(savedUserMessage));
+        emitter.onTimeout(() -> {
+            log.warn("SSE stream timed out for session {}", sessionId);
+            emitter.complete();
+        });
 
-            if (groqChatService != null && groqChatService.isAvailable()) {
-                log.info("Streaming chat response using Groq Cloud AI (llama-3.3-70b)");
-                new Thread(() -> {
+        emitter.onError((ex) -> {
+            log.warn("SSE stream error for session {}: {}", sessionId, ex.getMessage());
+            emitter.complete();
+        });
+
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("user_message")
+                        .data(savedUserMessage));
+
+                if (groqChatService != null && groqChatService.isAvailable()) {
+                    log.info("Streaming chat response using Groq Cloud AI (llama-3.3-70b)");
                     try {
                         groqChatService.streamChat(systemPrompt, userPrompt, token -> appendToken(emitter, fullReply, token));
                         if (fullReply.length() > 0) {
@@ -56,15 +66,15 @@ public class ChatStreamHandler {
                     } catch (Exception ex) {
                         log.error("Groq chat streaming error. Falling back to Gemini Chat Model...", ex);
                     }
-                    streamWithGemini(emitter, sessionId, fullReply, citations, systemPrompt, userPrompt);
-                }).start();
-            } else {
+                }
+
                 log.info("Streaming chat response using Gemini Chat Model");
                 streamWithGemini(emitter, sessionId, fullReply, citations, systemPrompt, userPrompt);
+            } catch (Exception ex) {
+                log.error("Error executing SSE stream task", ex);
+                emitter.completeWithError(ex);
             }
-        } catch (Exception ex) {
-            emitter.completeWithError(ex);
-        }
+        });
 
         return emitter;
     }
@@ -98,15 +108,21 @@ public class ChatStreamHandler {
         }
     }
 
+    private final java.util.concurrent.atomic.AtomicInteger tokenCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
     private void appendToken(SseEmitter emitter, StringBuilder fullReply, String token) {
         if (token == null) return;
         fullReply.append(token);
+        int currentCount = tokenCount.incrementAndGet();
         try {
             emitter.send(SseEmitter.event()
                     .name("token")
                     .data(objectMapper.writeValueAsString(token)));
+            if (currentCount % 20 == 0 || currentCount == 1) {
+                log.info("[ChatStreamHandler] Streamed {} tokens so far...", currentCount);
+            }
         } catch (Exception ex) {
-            log.error("Failed to send token event", ex);
+            log.error("Failed to send token event (token #{})", currentCount, ex);
         }
     }
 
@@ -116,6 +132,7 @@ public class ChatStreamHandler {
             StringBuilder fullReply,
             List<CitationDto> citations) {
         try {
+            log.info("[ChatStreamHandler] Stream completed successfully. Total reply length: {}, Total tokens: {}", fullReply.length(), tokenCount.get());
             ChatMessage assistant = chatMessageRepository.save(ChatMessage.builder()
                     .sessionId(sessionId)
                     .role(MessageRole.ASSISTANT)
@@ -128,7 +145,9 @@ public class ChatStreamHandler {
                     .data(toMessageResponse(assistant)));
             emitter.send(SseEmitter.event().name("done").data("[DONE]"));
             emitter.complete();
+            log.info("[ChatStreamHandler] Sent assistant_message and [DONE] events to SSE emitter for session: {}", sessionId);
         } catch (Exception ex) {
+            log.error("Failed to complete stream for session: {}", sessionId, ex);
             emitter.completeWithError(ex);
         }
     }

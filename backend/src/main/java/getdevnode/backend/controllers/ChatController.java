@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class ChatController {
 
     private final CurrentUser currentUser;
@@ -54,6 +55,7 @@ public class ChatController {
     public SseEmitter sendMessage(
             @PathVariable UUID id,
             @Valid @RequestBody ChatMessageRequest request) {
+        log.info("[ChatController] Received chat stream request for session: {}, prompt: '{}'", id, request.content());
         UUID userId = currentUser.require().getId();
         return chatService.streamReply(userId, id, request.content());
     }

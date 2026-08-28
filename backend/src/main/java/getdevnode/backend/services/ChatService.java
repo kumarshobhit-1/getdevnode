@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class ChatService {
 
     private final ChatSessionRepository chatSessionRepository;
@@ -90,28 +91,28 @@ public class ChatService {
     }
 
     public SseEmitter streamReply(UUID userId, UUID sessionId, String userContent) {
-        // 1. Ensure the session exists and the repo is indexed
+        log.info("[ChatService] Processing streamReply for session: {}", sessionId);
         ChatSession session = requireSession(userId, sessionId);
         Repository repo = repoService.requireOwned(session.getRepositoryId(), userId);
         if (repo.getIndexStatus() != IndexStatus.READY) {
+            log.warn("[ChatService] Repo {} is not ready. Status: {}", repo.getFullName(), repo.getIndexStatus());
             throw new BadRequestException("Repository is not ready for chat");
         }
 
-        // 2. Persist the user's message
         ChatMessage userMessage = chatMessageRepository.save(ChatMessage.builder()
                 .sessionId(session.getId())
                 .role(MessageRole.USER)
                 .content(userContent)
                 .build());
+        log.info("[ChatService] Saved user message: {}", userMessage.getId());
 
-        // 3. RAG retrieval — find code chunks similar to the question
         var retrievedContext = codeContextRetriever.retrieve(repo.getId(), userContent);
+        log.info("[ChatService] RAG Context retrieved: {} citations found", retrievedContext.citations().size());
 
-        // 4. Build LLM prompts from retrieved context + question
         String systemPrompt = chatPromptBuilder.systemPrompt(repo.getFullName());
         String userPrompt = chatPromptBuilder.userPrompt(retrievedContext.contextText(), userContent);
 
-        // 5. Stream OpenAI response to the client (SSE)
+        log.info("[ChatService] Invoking ChatStreamHandler.stream for session: {}", sessionId);
         return chatStreamHandler.stream(
                 session.getId(),
                 toMessageResponse(userMessage),
