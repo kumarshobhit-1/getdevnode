@@ -56,14 +56,18 @@ public class GroqChatService {
                 }
             } catch (Exception ex) {
                 String msg = ex.getMessage() != null ? ex.getMessage() : "";
-                boolean isRateLimit = msg.contains("429") || msg.contains("rate") || msg.contains("quota");
-
-                if (isRateLimit && attempt < maxAttempts && groqKeyRotator.getKeyCount() > 1) {
-                    log.warn("[Groq] Rate limit hit on key #{}. Rotating to next Groq API key...", attempt);
+                log.warn("[Groq] API Key attempt {}/{} failed: {}. Rotating to next key...", attempt, maxAttempts, msg);
+                if (groqKeyRotator.getKeyCount() > 1) {
                     groqKeyRotator.rotateNext();
-                } else if (attempt == maxAttempts) {
-                    log.error("[Groq] All Groq API key attempts failed: {}", msg);
+                }
+                if (attempt == maxAttempts) {
+                    log.error("[Groq] All {} Groq API key attempts failed: {}", maxAttempts, msg);
                     throw ex;
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
                 }
             }
         }
