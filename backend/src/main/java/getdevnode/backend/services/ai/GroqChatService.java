@@ -30,11 +30,10 @@ public class GroqChatService {
 
     public GroqChatService(
             @Value("${app.groq.api-keys:${GROQ_API_KEYS:${GROQ_API_KEY:}}}") String rawKeys,
-            @Value("${app.groq.model:llama-3.3-70b-versatile}") String modelName,
-            ObjectMapper objectMapper) {
+            @Value("${app.groq.model:llama-3.3-70b-versatile}") String modelName) {
         this.groqKeyRotator = new ApiKeyRotator("Groq-Chat", rawKeys, null);
         this.modelName = modelName;
-        this.objectMapper = objectMapper;
+        this.objectMapper = new ObjectMapper();
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
