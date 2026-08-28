@@ -173,10 +173,7 @@ export function RepoCard({ repo }: { repo: Repository }) {
                 Retry
               </>
             ) : (
-              <>
-                <Sparkles data-icon="inline-start" />
-                Index
-              </>
+              "Click to Index"
             )}
           </Button>
         </div>
