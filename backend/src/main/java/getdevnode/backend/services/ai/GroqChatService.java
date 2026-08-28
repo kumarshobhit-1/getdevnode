@@ -30,13 +30,19 @@ public class GroqChatService {
 
     public GroqChatService(
             @Value("${app.groq.api-keys:${GROQ_API_KEYS:${GROQ_API_KEY:}}}") String rawKeys,
-            @Value("${app.groq.model:llama-3.3-70b-versatile}") String modelName) {
+            @Value("${app.groq.model:openai/gpt-oss-120b}") String modelName) {
         this.groqKeyRotator = new ApiKeyRotator("Groq-Chat", rawKeys, null);
         this.modelName = modelName;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper()
+                .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+    }
+
+    public String getModelName() {
+        return modelName;
     }
 
     public boolean isAvailable() {
