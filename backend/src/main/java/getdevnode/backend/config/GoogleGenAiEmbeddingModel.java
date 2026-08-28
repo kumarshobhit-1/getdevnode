@@ -27,7 +27,7 @@ public class GoogleGenAiEmbeddingModel extends AbstractEmbeddingModel {
 
     public GoogleGenAiEmbeddingModel(
             @Value("${spring.ai.google.genai.api-keys:${GEMINI_API_KEYS:${GEMINI_API_KEY:${GENAI_API_KEY:dummy_gemini_key}}}}") String rawKeys,
-            @Value("${spring.ai.google.genai.embedding.text.model:text-embedding-004}") String modelName,
+            @Value("${spring.ai.google.genai.embedding.text.model:gemini-embedding-001}") String modelName,
             @Value("${spring.ai.vectorstore.pgvector.dimensions:1536}") int dimensions) {
         this.keyRotator = new ApiKeyRotator("Gemini-Embedding", rawKeys, "dummy_gemini_key");
         this.currentClient = Client.builder().apiKey(keyRotator.getCurrentKey()).build();
